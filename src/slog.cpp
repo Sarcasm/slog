@@ -4,6 +4,9 @@
 #include <iomanip>
 #include <iostream>
 
+#include <fmt/format.h>
+#include <fmt/time.h>
+
 namespace {
 
 const char *levelToString(slog::LogLevel level) {
@@ -26,9 +29,12 @@ void Logger::log(LogLevel level,
                  const std::string &message) {
   std::time_t t = std::time(nullptr);
   std::tm tm = *std::localtime(&t);
-  std::cout << std::put_time(&tm, "%Y/%m/%d %T") << " | "
-            << levelToString(level) << " | " << category << " | " << message
-            << "\n";
+
+  fmt::print("{:%Y/%m/%d %T} | {} | {} | {}\n",
+             tm,
+             levelToString(level),
+             category,
+             message);
 }
 
 } // namespace slog

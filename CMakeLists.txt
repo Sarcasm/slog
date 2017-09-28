@@ -44,8 +44,11 @@ endfunction()
 
 enable_colored_diagnotics()
 
+find_package(FMT REQUIRED)
+
 add_library(libslog src/slog.cpp include/slog/slog.hpp)
 set_target_properties(libslog PROPERTIES OUTPUT_NAME slog)
+target_link_libraries(libslog PRIVATE fmt::fmt)
 target_include_directories(libslog PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
