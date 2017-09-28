@@ -4,13 +4,6 @@ project(slog VERSION 0.1)
 
 include(GNUInstallDirs)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra)
 endif()
@@ -48,20 +41,30 @@ enable_colored_diagnotics()
 
 find_package(FMT REQUIRED)
 
-add_library(libslog src/slog.cpp include/slog/slog.hpp)
-add_library(slog::slog ALIAS libslog)
-set_target_properties(libslog PROPERTIES OUTPUT_NAME slog)
+add_library(libslog
+  include/slog/slog.hpp
+  src/slog.cpp)
+set_target_properties(libslog PROPERTIES
+  OUTPUT_NAME slog
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+target_compile_features(libslog PUBLIC cxx_std_11)
+target_include_directories(libslog
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
 target_link_libraries(libslog PUBLIC fmt::fmt)
-target_include_directories(libslog PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  )
+add_library(slog::slog ALIAS libslog)
 install(TARGETS libslog
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(slog tool/slog.cpp)
+set_target_properties(slog PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+target_compile_features(slog PRIVATE cxx_std_11)
 target_link_libraries(slog libslog)
 install(TARGETS slog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
