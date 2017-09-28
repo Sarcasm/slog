@@ -15,6 +15,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra)
 endif()
 
+include(CTest)
+
 include(CheckCXXCompilerFlag)
 
 # Setup the flag to enable colored diagnostics if any.
@@ -47,8 +49,9 @@ enable_colored_diagnotics()
 find_package(FMT REQUIRED)
 
 add_library(libslog src/slog.cpp include/slog/slog.hpp)
+add_library(slog::slog ALIAS libslog)
 set_target_properties(libslog PROPERTIES OUTPUT_NAME slog)
-target_link_libraries(libslog PRIVATE fmt::fmt)
+target_link_libraries(libslog PUBLIC fmt::fmt)
 target_include_directories(libslog PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -59,7 +62,11 @@ install(TARGETS libslog
   )
 
 add_executable(slog tool/slog.cpp)
-target_link_libraries(slog PRIVATE libslog)
+target_link_libraries(slog libslog)
 install(TARGETS slog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 install(DIRECTORY include/slog DESTINATION include)
+
+if (BUILD_TESTING)
+  add_subdirectory(test)
+endif()

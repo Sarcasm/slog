@@ -45,3 +45,15 @@ use the `conda <https://conda.io>`_ package manager::
 You now need to source the environment::
 
   source activate slog-env
+
+
+Build
+=====
+
+To build, type::
+
+  mkdir build
+  cd build
+  cmake -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
+  cmake --build . --config Release
+  ctest -C Release --output-on-failure

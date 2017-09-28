@@ -2,3 +2,4 @@
 name: slog-env
 dependencies:
 - fmt>=4.0.0
+- gtest>=1.8
