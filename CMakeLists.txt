@@ -2,15 +2,20 @@ cmake_minimum_required(VERSION 3.9)
 
 project(slog VERSION 0.1)
 
+include(CMakePackageConfigHelpers)
+include(CTest)
+include(CheckCXXCompilerFlag)
 include(GNUInstallDirs)
+
+# Turn this on for local development or continuous integration
+option(SLOG_WARNINGS_AS_ERRORS "Whether or not to treat warnings as errors" OFF)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra)
+  if (SLOG_WARNINGS_AS_ERRORS)
+    add_compile_options(-Werror)
+  endif()
 endif()
-
-include(CTest)
-
-include(CheckCXXCompilerFlag)
 
 # Setup the flag to enable colored diagnostics if any.
 #
@@ -39,12 +44,16 @@ endfunction()
 
 enable_colored_diagnotics()
 
-find_package(FMT REQUIRED)
+find_package(FMT 4 REQUIRED)
 
 add_library(libslog
   include/slog/slog.hpp
   src/slog.cpp)
+add_library(slog::libslog ALIAS libslog)
 set_target_properties(libslog PROPERTIES
+  # libslog is used just to disambiguates the slog executable,
+  # however this would result in a library named liblibslog.so
+  # so give proper OUTPUT_NAME to the library
   OUTPUT_NAME slog
   ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
@@ -55,20 +64,50 @@ target_include_directories(libslog
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 target_link_libraries(libslog PUBLIC fmt::fmt)
-add_library(slog::slog ALIAS libslog)
-install(TARGETS libslog
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(slog tool/slog.cpp)
 set_target_properties(slog PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 target_compile_features(slog PRIVATE cxx_std_11)
 target_link_libraries(slog libslog)
-install(TARGETS slog RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+if (WIN32)
+  set(CONFIG_INSTALL_DIR CMake)
+else()
+  set(CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+endif()
+
+# install targets, courtesy of
+# https://cmake.org/cmake/help/v3.9/manual/cmake-packages.7.html#creating-packages
 install(DIRECTORY include/slog DESTINATION include)
+install(TARGETS libslog
+        EXPORT ${PROJECT_NAME}-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(EXPORT ${PROJECT_NAME}-targets
+        NAMESPACE slog::
+        DESTINATION ${CONFIG_INSTALL_DIR})
+
+# add valid configuration files to the build tree as well,
+# https://cmake.org/cmake/help/v3.9/manual/cmake-packages.7.html#creating-a-package-configuration-file-for-the-build-tree
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake"
+  VERSION ${${PROJECT_NAME}_VERSION}
+  COMPATIBILITY SameMajorVersion)
+export(EXPORT ${PROJECT_NAME}-targets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}-targets.cmake"
+  NAMESPACE slog::)
+configure_file(cmake/${PROJECT_NAME}-config.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake"
+  COPYONLY)
+
+install(
+  FILES
+    cmake/${PROJECT_NAME}-config.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake"
+  DESTINATION
+    ${CONFIG_INSTALL_DIR})
 
 if (BUILD_TESTING)
   add_subdirectory(test)
