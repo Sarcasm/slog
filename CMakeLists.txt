@@ -71,11 +71,7 @@ set_target_properties(slog PROPERTIES
 target_compile_features(slog PRIVATE cxx_std_11)
 target_link_libraries(slog libslog)
 
-if (WIN32)
-  set(CONFIG_INSTALL_DIR CMake)
-else()
-  set(CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-endif()
+set(CMAKE_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 # install targets, courtesy of
 # https://cmake.org/cmake/help/v3.9/manual/cmake-packages.7.html#creating-packages
@@ -87,7 +83,7 @@ install(TARGETS libslog
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(EXPORT ${PROJECT_NAME}-targets
         NAMESPACE slog::
-        DESTINATION ${CONFIG_INSTALL_DIR})
+        DESTINATION ${CMAKE_CONFIG_INSTALL_DIR})
 
 # add valid configuration files to the build tree as well,
 # https://cmake.org/cmake/help/v3.9/manual/cmake-packages.7.html#creating-a-package-configuration-file-for-the-build-tree
@@ -107,7 +103,7 @@ install(
     cmake/${PROJECT_NAME}-config.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake"
   DESTINATION
-    ${CONFIG_INSTALL_DIR})
+    ${CMAKE_CONFIG_INSTALL_DIR})
 
 if (BUILD_TESTING)
   add_subdirectory(test)
